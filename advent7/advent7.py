@@ -11,13 +11,11 @@ class Gate(object):
         self.wire = self._extractWire(description)
         self.gate_type = self._extract_gate_type(description)
         self.inputs = self._extract_inputs(description)
-        print self.inputs
-        # print self.inputs
         self.output = None
         self.ready_to_compute = self.can_compute()
         WIRES[self.wire] = self.output
         for inp in self.inputs:
-            if inp not in WIRES.keys():
+            if inp not in WIRES.keys() and not self._is_number(inp):
                 WIRES[inp] = None
 
     def _extractWire(self, description):
@@ -57,30 +55,37 @@ class Gate(object):
             return False
 
     def _update_inputs(self):
-        # print self.gate_type + " " + self.inputs.__str__()
         for i in range(len(self.inputs)):
-            if not self._is_number(self.inputs[i]) and self.inputs[i] in WIRES.keys():
-                self.inputs[i] = WIRES[self.inputs[i]]
+            if self.inputs[i] in WIRES.keys() and WIRES[self.inputs[i]] is not None:
+                self.inputs[i] = WIRES[self.inputs[i]].get_output()
+
+    def _convert_inputs_to_ints(self):
         for i in range(len(self.inputs)):
-            if not self._is_number(self.inputs[i]):
-                self.ready_to_compute = False
-                return
-            else:
+            if self._is_number(self.inputs[i]):
                 self.inputs[i] = int(self.inputs[i])
-                self.ready_to_compute = True
-        if self.ready_to_compute is True:
-            print "Gate ready to compute."
 
     def can_compute(self):
-        self._update_inputs()
-        return self.ready_to_compute
+        for inp in self.inputs:
+            if not self._is_number(inp):
+                return False
+        return True
 
     def execute(self):
         if self.output is not None:
             raise Exception("you must not call execute() more than once")
 
         if not self.can_compute():
-            raise Exception("error: gate is not ready to compute yet. First, provide all ou")
+            self._update_inputs()
+            for inputwire in self.inputs:
+                if not self._is_number(inputwire):
+                    responsible_gate = WIRES[inputwire]
+                    if responsible_gate is None:
+                        print self.inputs
+                        raise Exception('no responsible gate for wire '+inputwire)
+                    responsible_gate.execute()
+                    self.inputs[self.inputs.index(inputwire)] = responsible_gate.get_output()
+
+        self._convert_inputs_to_ints()
         if self.gate_type == 'ASSIGN':
             self.output = self.inputs[0]
         elif self.gate_type == 'NOT':
@@ -100,35 +105,29 @@ class Gate(object):
         return self.wire
 
     def get_output(self):
+        if self.output is None:
+            self.execute()
         return self.output
 
-WIRES = {}
-UNFINISHED_GATES = []
 
-def value_of(wire):
-    return WIRES[wire]
+WIRES = {}
+
 
 def process_line(line):
-    UNFINISHED_GATES.append(Gate(line))
+    return Gate(line)
 
 
 def main():
     with open('input7.txt') as infile:
         line = infile.readline()
         while line:
-            process_line(line)
+            gate = process_line(line)
+            WIRES[gate.get_wirename()] = gate
             line = infile.readline()
-    print "finished setup. Start computation."
-    while len(UNFINISHED_GATES) > 0:
-        print str(len(UNFINISHED_GATES)) + " unfinished gates."
-        # print WIRES
-        for gate in UNFINISHED_GATES:
-            if gate.can_compute():
-                gate.execute()
-                WIRES[gate.get_wirename()] = gate.get_output()
-                UNFINISHED_GATES.remove(gate)
-                print "gate finished: " + gate.get_wirename() + " : " + str(gate.get_output())
-    print value_of('a')
+    print "Finished setup. Starting computation."
+    a_gate = WIRES['a']
+    a_gate.execute()
+    print "value of wire '" + a_gate.get_wirename() + "' : " + str(a_gate.get_output())
 
 if __name__ == '__main__':
     main()
