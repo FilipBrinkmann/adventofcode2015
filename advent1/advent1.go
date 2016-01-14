@@ -12,7 +12,8 @@ func main() {
 	}
 
 	floor := 0
-	for _,v := range(bytes) {
+	first_occurrence := true
+	for i,v := range(bytes) {
 		switch command := string(v); command {
 		case "(":
 			floor += 1
@@ -21,7 +22,11 @@ func main() {
 		default:
 			panic("encountered unknown command!")
 		}
+		if floor == -1 && first_occurrence  {
+				defer fmt.Printf("Basement was entered upon the %dth command\n", i+1)
+				first_occurrence = false
+		}
 	}
-	fmt.Println(floor)
+	defer fmt.Printf("Santa ended up on the %dth floor\n", floor)
 }
 
