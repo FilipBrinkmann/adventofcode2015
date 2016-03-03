@@ -40,11 +40,22 @@ import (
 // puzzle input), what should his next password be?
 
 // Your puzzle input is hepxcrrq.
+
 func main() {
 	password := "hepxcrrq"
+	fmt.Println("Part one:")
 	for !isAllowedPassword(&password) {
 		password = *increment(&password)
 	}
+	fmt.Println("Correct solution is 'hepxxyzz'")
+	fmt.Println(password)
+
+	fmt.Println("Part two:")
+	password = *increment(&password)
+	for !isAllowedPassword(&password) {
+		password = *increment(&password)
+	}
+	fmt.Println("Correct solution is 'hepxxyzz'")
 	fmt.Println(password)
 }
 
@@ -68,7 +79,32 @@ func isAllowedPassword(password *string) bool {
 	if strings.ContainsAny(*password, "i o l") {
 		return false
 	}
-	return true
+	// third test
+	found_one_pair := false
+	found_two_pairs := false
+	for i := 0; i < len(*password)-1; i++ {
+		if (*password)[i] == (*password)[i+1] {
+			if found_one_pair {
+				found_two_pairs = true
+				break
+			} else {
+				found_one_pair = true
+				if i > len(*password)-2 {
+					// we only found the first pair, so we need at least space for the second
+					// which may at latest start at len(*password)-2
+					break
+				} else {
+					// skip over the current pair
+					i += 1
+				}
+			}
+		}
+	}
+	if found_one_pair && found_two_pairs {
+		return true
+	} else {
+		return false
+	}
 }
 
 func increment(password *string) *string {
